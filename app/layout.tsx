@@ -1,7 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
 import "./globals.css"
-import Header from "@/components/Header"
 import { ThemeProvider } from "@/components/theme-provider"
 import {
   SITE_URL,
@@ -118,7 +117,6 @@ export default function RootLayout({
         />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <div className="site-shell">
-            <Header />
             <main id="main">{children}</main>
           </div>
         </ThemeProvider>

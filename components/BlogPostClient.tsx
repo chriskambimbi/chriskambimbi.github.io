@@ -17,8 +17,26 @@ export default function BlogPostClient({ title, author, date, coverImage, childr
   references: Record<string, string>; toc: TocItem[]
 }) {
   const [tocVisible, setTocVisible] = useState(true)
+  const [activeId, setActiveId] = useState("")
   const articleRef = useRef<HTMLElement>(null)
   const layoutRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const article = articleRef.current
+    if (!article) return
+    const headings = Array.from(article.querySelectorAll<HTMLElement>("h2[id], h3[id]"))
+    const onScroll = () => {
+      let current = headings[0]?.id || ""
+      for (const heading of headings) {
+        if (heading.getBoundingClientRect().top <= 130) current = heading.id
+        else break
+      }
+      setActiveId(current)
+    }
+    onScroll()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
 
   useEffect(() => {
     let disposed = false
@@ -62,21 +80,32 @@ export default function BlogPostClient({ title, author, date, coverImage, childr
     <div className="blog-layout" ref={layoutRef}>
       <div className="article-main">
         <a className="back-to-blog" href="/#blog">← All posts</a>
+        <header className="article-header">
+          <h1>{title}</h1>
+          <div className="article-meta">
+            {author && <p className="article-author">{author}</p>}
+            <p className="article-date">{date}</p>
+          </div>
+        </header>
         {toc.length > 0 && <nav className="toc-sidebar" aria-label="Table of contents">
           <button type="button" className="toc-toggle" aria-expanded={tocVisible} aria-controls="article-contents" onClick={() => setTocVisible(!tocVisible)}>
             <span aria-hidden="true">{tocVisible ? "⌄" : "›"}</span> Contents
           </button>
           <ul className="toc-list" id="article-contents" hidden={!tocVisible}>
-            {toc.map(item => <li key={item.id}>
-              <a href={`#${item.id}`}>{item.title}</a>
-              {item.children && <ul>{item.children.map(child => <li key={child.id}><a href={`#${child.id}`}>{child.title}</a></li>)}</ul>}
-            </li>)}
+            {toc.map(item => {
+              const childActive = item.children?.some(child => child.id === activeId)
+              const itemClass = item.id === activeId ? "active" : childActive ? "active-parent" : undefined
+              return <li key={item.id} className={itemClass}>
+                <a href={`#${item.id}`}>{item.title}</a>
+                {item.children && <ul>{item.children.map(child => (
+                  <li key={child.id} className={child.id === activeId ? "active" : undefined}>
+                    <a href={`#${child.id}`}>{child.title}</a>
+                  </li>
+                ))}</ul>}
+              </li>
+            })}
           </ul>
         </nav>}
-        <header className="article-header">
-          <h1>{title}</h1>
-          <div className="article-meta">{author && <span>{author} · </span>}<span>{date}</span></div>
-        </header>
         {coverImage && <figure className="cover-image"><img data-zoomable="" src={coverImage} alt="" /></figure>}
         <article className="article-content" ref={articleRef}>
           {children}

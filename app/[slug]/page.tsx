@@ -82,7 +82,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   }
   return <>
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
-    <BlogPostClient title={post.title} author={post.author} date={`${post.date}, ${post.year}`} coverImage={post.coverImage} references={references} toc={toc}>
+    <BlogPostClient title={post.title} author={post.author || SITE_AUTHOR} date={`${post.date}, ${post.year}`} coverImage={post.coverImage} references={references} toc={toc}>
       {content}
     </BlogPostClient>
   </>

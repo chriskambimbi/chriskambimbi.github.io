@@ -80,6 +80,7 @@ export function getBlogPost(slug: string): BlogPost | null {
       date: data.date || '',
       year: data.year || new Date().getFullYear(),
       coverImage: data.coverImage,
+      description: data.description,
       tags: data.tags || [],
       content,
     }

@@ -7,8 +7,8 @@ interface CitationProps {
 
 export function Citation({ num }: CitationProps) {
   return (
-    <sup id={`cite-${num}`} className="citation-marker">
-      {num}
+    <sup data-citation={num} className="citation-marker">
+      <a href={`#reference-${num}`} aria-label={`Reference ${num}`}>{num}</a>
     </sup>
   )
 }

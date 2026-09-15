@@ -1,7 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
 import "./globals.css"
-import { Roboto, Open_Sans } from "next/font/google"
 import Header from "@/components/Header"
 import { ThemeProvider } from "@/components/theme-provider"
 import {
@@ -13,16 +12,7 @@ import {
   DEFAULT_OG_IMAGE,
 } from "@/lib/seo"
 
-const roboto = Roboto({
-  weight: ["400", "700"],
-  subsets: ["latin"],
-  variable: "--font-roboto",
-})
-
-const openSans = Open_Sans({
-  subsets: ["latin"],
-  variable: "--font-open-sans",
-})
+import "katex/dist/katex.min.css"
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -120,25 +110,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
-          integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV"
-          crossOrigin="anonymous"
-        />
-      </head>
-      <body
-        className={`${roboto.variable} ${openSans.variable} font-sans bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100 transition-colors`}
-      >
+      <body>
+        <a href="#main" className="skip-link">Skip to content</a>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
         />
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+          <div className="site-shell">
             <Header />
-            <main className="pt-16">{children}</main>
+            <main id="main">{children}</main>
           </div>
         </ThemeProvider>
       </body>

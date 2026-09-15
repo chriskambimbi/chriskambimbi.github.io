@@ -1,217 +1,94 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import type { TocItem } from "@/lib/toc"
-import { getBasePath } from "@/lib/basePath"
 
-// Parse markdown links [text](url) into HTML anchor tags
-function parseMarkdownLinks(text: string): string {
-  // Match [link text](url) pattern
-  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g
-  return text.replace(linkRegex, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+function ReferenceText({ text }: { text: string }) {
+  return <>{text.split(/(\[[^\]]+\]\([^)]+\))/g).map((part, i) => {
+    const match = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
+    return match && /^https?:\/\//.test(match[2])
+      ? <a key={i} href={match[2]} target="_blank" rel="noopener noreferrer">{match[1]}</a>
+      : <span key={i}>{part.replace(/\\\$/g, "$")}</span>
+  })}</>
 }
 
-interface BlogPostClientProps {
-  title: string
-  author: string
-  date: string
-  coverImage?: string
-  children: ReactNode
-  references: Record<string, string>
-  toc: TocItem[]
-}
-
-export default function BlogPostClient({
-  title,
-  author,
-  date,
-  coverImage,
-  children,
-  references,
-  toc
-}: BlogPostClientProps) {
+export default function BlogPostClient({ title, author, date, coverImage, children, references, toc }: {
+  title: string; author: string; date: string; coverImage?: string; children: ReactNode;
+  references: Record<string, string>; toc: TocItem[]
+}) {
   const [tocVisible, setTocVisible] = useState(true)
+  const articleRef = useRef<HTMLElement>(null)
+  const layoutRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      import("medium-zoom").then((mediumZoom) => {
-        const isDark = document.documentElement.classList.contains("dark")
-        const zoom = mediumZoom.default("[data-zoomable]", {
-          margin: 48,
-          background: isDark ? "rgba(3, 7, 18, 0.95)" : "rgba(255, 255, 255, 0.95)",
-          scrollOffset: 0,
-        })
-        return () => {
-          zoom.detach()
-        }
+    let disposed = false
+    let cleanup = () => {}
+    import("medium-zoom").then(({ default: mediumZoom }) => {
+      if (disposed || !layoutRef.current) return
+      const zoom = mediumZoom(layoutRef.current.querySelectorAll<HTMLImageElement>("[data-zoomable]"), {
+        margin: 24, background: document.documentElement.classList.contains("dark") ? "#191c18" : "#ffffff",
       })
-    }
+      cleanup = () => zoom.detach()
+    })
+    return () => { disposed = true; cleanup() }
   }, [])
 
-  // Position references aligned with their citations (with collision detection)
   useEffect(() => {
-    if (typeof window === "undefined" || Object.keys(references).length === 0) return
-
+    const article = articleRef.current
+    if (!article) return
     const positionReferences = () => {
-      const articleContent = document.querySelector('.article-content') as HTMLElement
-      if (!articleContent) return
-
-      const layoutRect = articleContent.getBoundingClientRect()
-      const layoutTop = layoutRect.top + window.scrollY
-
-      // Store positions to detect collisions
-      const positions: { num: string; top: number; height: number }[] = []
-      const MIN_GAP = 10 // Minimum gap between references in pixels
-
-      // First pass: calculate initial positions
-      Object.keys(references).forEach((num) => {
-        const citation = document.querySelector(`#cite-${num}`)
-        const reference = document.querySelector(`[data-ref-num="${num}"]`) as HTMLElement
-
-        if (citation && reference) {
-          const citationRect = citation.getBoundingClientRect()
-          const citationTop = citationRect.top + window.scrollY
-          const topOffset = citationTop - layoutTop
-          const refHeight = reference.offsetHeight || 50
-
-          positions.push({ num, top: topOffset, height: refHeight })
-        }
-      })
-
-      // Sort by position
-      positions.sort((a, b) => a.top - b.top)
-
-      // Second pass: adjust for collisions
-      for (let i = 1; i < positions.length; i++) {
-        const prev = positions[i - 1]
-        const curr = positions[i]
-        const minTop = prev.top + prev.height + MIN_GAP
-
-        if (curr.top < minTop) {
-          curr.top = minTop
-        }
+      const origin = article.getBoundingClientRect().top
+      const positions = Object.keys(references).flatMap(num => {
+        const citation = article.querySelector(`[data-citation="${num}"]`)
+        const note = article.querySelector<HTMLElement>(`#reference-${num}`)
+        return citation && note ? [{ note, top: citation.getBoundingClientRect().top - origin }] : []
+      }).sort((a, b) => a.top - b.top)
+      let nextTop = 0
+      for (const { note, top } of positions) {
+        const adjusted = Math.max(top, nextTop)
+        note.style.top = `${adjusted}px`
+        nextTop = adjusted + note.offsetHeight + 12
       }
-
-      // Apply final positions
-      positions.forEach(({ num, top }) => {
-        const reference = document.querySelector(`[data-ref-num="${num}"]`) as HTMLElement
-        if (reference) {
-          reference.style.top = `${top}px`
-        }
-      })
     }
-
-    // Position after content loads
-    const timer1 = setTimeout(positionReferences, 100)
-    const timer2 = setTimeout(positionReferences, 500)
-    const timer3 = setTimeout(positionReferences, 1000)
-
-    window.addEventListener('resize', positionReferences)
-
-    return () => {
-      clearTimeout(timer1)
-      clearTimeout(timer2)
-      clearTimeout(timer3)
-      window.removeEventListener('resize', positionReferences)
-    }
+    positionReferences()
+    const observer = new ResizeObserver(positionReferences)
+    observer.observe(article)
+    article.querySelectorAll('.margin-note').forEach(note => observer.observe(note))
+    window.addEventListener("resize", positionReferences)
+    return () => { observer.disconnect(); window.removeEventListener("resize", positionReferences) }
   }, [references])
 
   return (
-    <div className="blog-layout">
-      {/* Main Content Area */}
-      <main className="main-content">
-        {/* Post Header */}
-        <header className="post-header">
-          <h1 className="post-title">{title}</h1>
-          <div className="post-meta">
-            {author && <span className="author">{author}</span>}
-            <span className="date">{date}</span>
-          </div>
+    <div className="blog-layout" ref={layoutRef}>
+      <div className="article-main">
+        <a className="back-to-blog" href="/#blog">← All posts</a>
+        {toc.length > 0 && <nav className="toc-sidebar" aria-label="Table of contents">
+          <button type="button" className="toc-toggle" aria-expanded={tocVisible} aria-controls="article-contents" onClick={() => setTocVisible(!tocVisible)}>
+            <span aria-hidden="true">{tocVisible ? "⌄" : "›"}</span> Contents
+          </button>
+          <ul className="toc-list" id="article-contents" hidden={!tocVisible}>
+            {toc.map(item => <li key={item.id}>
+              <a href={`#${item.id}`}>{item.title}</a>
+              {item.children && <ul>{item.children.map(child => <li key={child.id}><a href={`#${child.id}`}>{child.title}</a></li>)}</ul>}
+            </li>)}
+          </ul>
+        </nav>}
+        <header className="article-header">
+          <h1>{title}</h1>
+          <div className="article-meta">{author && <span>{author} · </span>}<span>{date}</span></div>
         </header>
-
-        {/* Cover Image */}
-        {coverImage && (
-          <figure className="cover-image">
-            <img
-              data-zoomable=""
-              src={coverImage.startsWith('/') ? getBasePath(coverImage) : coverImage}
-              loading="lazy"
-              alt=""
-            />
-          </figure>
-        )}
-
-        {/* Article Content - serves as positioning anchor for TOC and references */}
-        <article className="article-content">
-          {/* Left: Table of Contents - positioned absolutely, aligned with first paragraph */}
-          {toc && toc.length > 0 && (
-            <nav
-              className={`toc-sidebar ${tocVisible ? 'toc-visible' : 'toc-hidden'}`}
-              aria-label="Table of contents"
-            >
-              <button
-                className="toc-toggle"
-                onClick={() => setTocVisible(!tocVisible)}
-                aria-expanded={tocVisible}
-                aria-label={tocVisible ? "Hide table of contents" : "Show table of contents"}
-              >
-                <svg
-                  className="toc-toggle-icon"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 14 14"
-                  fill="none"
-                  style={{ transform: tocVisible ? 'rotate(0deg)' : 'rotate(-90deg)' }}
-                >
-                  <path
-                    d="M3 5L7 9L11 5"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <span className="toc-toggle-label">Contents</span>
-              </button>
-              <ul className="toc-list">
-                {toc.map((item) => (
-                  <li key={item.id} className="toc-item">
-                    <a href={`#${item.id}`}>{item.title}</a>
-                    {item.children && item.children.length > 0 && (
-                      <ul className="toc-sublist">
-                        {item.children.map((child) => (
-                          <li key={child.id} className="toc-subitem">
-                            <a href={`#${child.id}`}>{child.title}</a>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          )}
-
-          {/* Margin References - positioned absolutely */}
-          {Object.keys(references).length > 0 && (
-            <div className="margin-references">
-              {Object.entries(references).map(([num, text]) => (
-                <div
-                  key={num}
-                  className="margin-note"
-                  data-ref-num={num}
-                >
-                  <sup>{num}</sup>
-                  <span dangerouslySetInnerHTML={{ __html: parseMarkdownLinks(text) }} />
-                </div>
-              ))}
-            </div>
-          )}
-
+        {coverImage && <figure className="cover-image"><img data-zoomable="" src={coverImage} alt="" /></figure>}
+        <article className="article-content" ref={articleRef}>
           {children}
+          {Object.keys(references).length > 0 && <aside className="margin-references" aria-label="References">
+            <h2>References</h2>
+            {Object.entries(references).map(([num, text]) => <div key={num} id={`reference-${num}`} className="margin-note" tabIndex={-1}>
+              <sup>{num}</sup> <ReferenceText text={text} />
+            </div>)}
+          </aside>}
         </article>
-      </main>
+        <a className="back-to-blog article-end" href="/#blog">← Back to all posts</a>
+      </div>
     </div>
   )
 }

@@ -4,15 +4,6 @@ import ThemeToggle from "@/components/ThemeToggle"
 
 const projects = [
   {
-    title: "MedLLM Attack Taxonomy",
-    type: "AI SAFETY · RESEARCH TOOL",
-    description: "An interactive taxonomy of adversarial attacks on medical large language models. Mapping vulnerabilities to better understand their risks.",
-    links: [
-      { label: "Explore project", url: "https://chriskambimbi.github.io/MedLLM-Attack-Taxonomy/" },
-      { label: "GitHub", url: "https://github.com/chriskambimbi/MedLLM-Attack-Taxonomy" },
-    ],
-  },
-  {
     title: "Tinker in Practice",
     type: "LLM TRAINING · INTERACTIVE TUTORIAL",
     description: "An interactive guide to using Tinker, from your first training loop to fine-tuning, reinforcement learning, and deployment. Learn through visual explanations and hands-on modules.",
@@ -28,6 +19,15 @@ const projects = [
       { label: "GitHub", url: "https://github.com/chriskambimbi/Ellesia" },
       { label: "Model", url: "https://huggingface.co/Christim/ellesia-gpt-oss-120b" },
       { label: "Dataset", url: "https://huggingface.co/datasets/Christim/seventh-day-adventist-conversations" },
+    ],
+  },
+  {
+    title: "MedLLM Attack Taxonomy",
+    type: "AI SAFETY · RESEARCH TOOL",
+    description: "An interactive taxonomy of adversarial attacks on medical large language models. Mapping vulnerabilities to better understand their risks.",
+    links: [
+      { label: "Explore project", url: "https://chriskambimbi.github.io/MedLLM-Attack-Taxonomy/" },
+      { label: "GitHub", url: "https://github.com/chriskambimbi/MedLLM-Attack-Taxonomy" },
     ],
   },
 ]

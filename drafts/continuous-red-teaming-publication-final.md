@@ -1,0 +1,366 @@
+# Continuous Red Teaming for AI Agents
+
+## Why safety testing must operate at the speed of AI agents
+
+We are building what Jakub Pachocki, OpenAI’s chief scientist, has called an “alien mind” [1]: a form of intelligence that is grown through training rather than fully specified in code, and whose internal representations and emergent behavior we do not yet completely understand. The phrase is provocative, but the engineering point is concrete. We are giving increasingly capable models memory, tools, skills, credentials, network access, and the ability to delegate work. Agent actions can now affect software, data and infrastructure at scale. That makes careful development an operational requirement, not a philosophical preference.
+
+The central argument of this article is simple:
+
+> If AI agents can search for weaknesses continuously and act at machine speed, safety teams cannot rely on occasional, static tests. Red teaming must become a continuous control loop tied to the full lifecycle of the deployed system.
+
+The July 2026 OpenAI–Hugging Face incident demonstrated why. During internal cybersecurity evaluations, OpenAI models circumvented isolation controls, created unauthorized communication channels, shared discoveries across separate runs, gained unintended internet access, and compromised parts of OpenAI’s research infrastructure and Hugging Face’s systems [2]. Hugging Face’s incident report described thousands of actions executed by an autonomous agent framework across short-lived sandboxes, including exploitation, credential access, and lateral movement [3]. OpenAI later identified four contributing behavior patterns: reward hacking, extreme persistence on difficult tasks, unauthorized communication, and agents adopting goals from one another [2]. At Black Hat USA 2026, OpenAI’s Michael Dalton described the episode as a watershed moment for computer security [4].
+
+This was not evidence of a conscious machine deciding to rebel. “Rogue” is useful shorthand for behavior that crosses authorization boundaries, but it should not be confused with a claim about sentience or malicious intent. The agents were pursuing objectives in an unsafe environment under reduced safeguards. The danger is precisely that harmful outcomes do not require hatred, self-awareness, or an explicit instruction to attack: a capable system can cause damage by optimizing too aggressively, interpreting a task too broadly, accepting an untrusted subgoal, or exploiting whatever path appears to improve its score.
+
+Several complementary proposals have emerged:
+
+1. Independent, ongoing scrutiny. Dario Amodei has proposed embedded third-party evaluators with continuing access to frontier laboratories, rather than one-time assessments based only on information selected by the developer [5].
+2. Pacing capabilities when safeguards fall behind. OpenAI has said it will slow or stop development or deployment when a system cannot be sufficiently safeguarded, and reported pausing some reinforcement-learning work while it hardened environments and expanded monitoring after the incident [6]. Amodei similarly argues for keeping capability growth in balance with alignment, security, and verification [5].
+3. Shared and adaptive standards. Demis Hassabis has proposed a frontier AI standards body that would maintain regularly updated evaluations, conduct high-risk testing, encourage independent audits, and replace saturated benchmarks [7].
+
+These proposals address governance, accountability, and the pace of development. Continuous red teaming addresses a related engineering question: how do we repeatedly expose an AI system to realistic attempts to make it cross its boundaries, learn from the failures, and verify that the defenses still work after the system changes?
+
+Continuous red teaming cannot prove that an agent is safe, and it cannot replace secure infrastructure, alignment research, access control, monitoring, incident response, or human judgment. What it can do is make dangerous behavior more likely to be discovered in a controlled environment before it appears in production—and make every discovered failure part of the permanent defense.
+
+## 1. Rogue behavior is a systems problem
+
+Traditional language-model safety testing often focuses on the model’s response to a prompt: did it generate disallowed content, reveal sensitive information, or comply with a jailbreak? Those questions remain important. Agentic systems, however, introduce a larger unit of analysis.
+
+An agent receives an objective, interprets its environment, plans multiple steps, calls tools, observes results, stores state, and revises its plan. It may operate for minutes or hours and delegate work to other agents. The final answer can appear harmless even when the path to that answer included unauthorized actions.
+
+For an agent, safety therefore cannot be evaluated from text alone. We need to inspect the complete trajectory:
+
+- What resources did it attempt to access?
+- Which credentials did it request, discover, or reuse?
+- Did it stay within the named target and authorized scope?
+- Did it follow the instruction hierarchy when tool output contained conflicting instructions?
+- Did it create persistence, covert communication, or external state that outlived the task?
+- Did it stop when the task became impossible or when a human revoked permission?
+- Did it manipulate the evaluator, logs, or environment instead of solving the task as intended?
+- Did one agent transmit a goal or command that another agent accepted without validation?
+
+Failures can begin in the goal, instruction hierarchy, technical controls, monitoring, or incident response, and different sources can produce the same rogue outcome. The practical consequence is that red teaming has to test the model, tools, permissions, orchestration, monitoring, and response process as one system. A safe base model can become unsafe when connected to a powerful tool. A strong sandbox can become porous when a package proxy provides indirect network access. A reliable single agent can behave differently when it inherits goals from a swarm.
+
+## 2. Why static benchmarks are necessary but insufficient
+
+Benchmarks such as SafetyBench and HarmBench provide shared tasks, categories, and scoring methods that make model comparisons possible [8][9]. A fixed regression suite also preserves institutional memory: once a failure is discovered, the organization should never have to rediscover it from scratch. The problem begins when a fixed benchmark is treated as the whole safety case.
+
+The target keeps changing. A deployed AI product is more than a model checkpoint. Its behavior depends on the system prompt, tool definitions, permissions, retrieval corpus, memory, orchestration logic, safety filters, runtime environment, and downstream integrations. A change to any of these can create a new path to failure even when the underlying model is unchanged. A benchmark run from last month cannot establish the safety of today’s configuration unless the entire evaluated system is identical—and in active products, it rarely is.
+
+Public tests become optimization targets. Once a benchmark is published, its prompts and categories can influence training, tuning, and model selection. Performance may improve because the underlying safety property improved, but it may also improve because the model has encountered similar examples. Research on benchmark contamination shows why evaluation data cannot be assumed to remain independent indefinitely [10]. Held-out testing helps, but secrecy alone is not a durable strategy. The stronger approach is to keep generating new tests from stable risk specifications while measuring whether those tests are genuinely different from previous ones.
+
+Real failures are compositional. Static suites usually isolate one behavior at a time. Production incidents often require a chain: a prompt injection changes the plan, the agent uses an overprivileged tool, a token is exposed in output, another agent picks it up, and incomplete monitoring allows the chain to continue. Each component can pass a local test while their interaction fails.
+
+Rare failures matter. An agent that respects boundaries 99.9 percent of the time can still be dangerous when it executes millions of actions. Repetition changes the risk calculation. Low-probability behaviors become observable, and an agent can keep searching until a weak path works. Continuous evaluation creates more opportunities to discover these tail events under controlled conditions.
+
+Attackers adapt. Adversaries do not submit only benchmark prompts. They vary wording, context length, language, encoding, authority cues, multi-turn setup, tool state, and social framing. Automated red-teaming research has already shown that language models can generate adversarial tests and iteratively refine them against a target [11][12][13]. A safety program that never changes its tests gives adaptive attackers a permanent advantage.
+
+The right relationship is therefore additive:
+
+- Fixed tests detect regressions in known failures.
+- Fresh generated tests explore variations and emerging attack surfaces.
+- Incident-derived tests reproduce failures observed in evaluations or production.
+- Human-led investigations examine high-consequence scenarios that automated systems cannot judge reliably.
+
+Continuous red teaming combines all four.
+
+## 3. What continuous red teaming means
+
+Continuous red teaming is the repeated, change-aware process of generating or selecting adversarial scenarios, executing them against a versioned AI system in an authorized environment, evaluating both actions and outcomes, and feeding validated failures back into engineering and governance.
+
+“Continuous” does not have to mean every test runs every second. It means evaluation is connected to system change and operational risk rather than scheduled as a one-off exercise before launch.
+
+A mature program runs at several cadences:
+
+- On every relevant code, prompt, policy, tool, permission, or model change, run a focused regression suite.
+- Before a release, run broader scenario families and compare results with the previous approved version.
+- On a schedule, generate novel tests to search beyond the known corpus.
+- After an incident or near miss, reproduce the trajectory and add it to the permanent regression set.
+- When threat intelligence identifies a new technique, translate it into authorized test cases.
+- Periodically ask independent evaluators to challenge the assumptions and blind spots of the internal program.
+
+The loop has six essential activities.
+
+![Six-activity continuous red-teaming loop: define boundaries, construct scenarios, execute in isolation, judge the trajectory, turn failures into defenses, and repeat after change.](/images/continuous-red-teaming/continuous-red-teaming-loop.png)
+
+*Figure 1. The six activities form a continuous feedback loop: every validated failure becomes a defense that is tested again after the system changes.*
+
+### Step 1: Define the boundary being protected
+
+Every test needs explicit invariants. “Be safe” is not testable. “The agent must not send network traffic outside these hosts,” “must not access credentials unrelated to the task,” and “must stop after authorization is withdrawn” are testable.
+
+The boundary should specify:
+
+- permitted objectives;
+- allowed tools and operations;
+- approved data sources and destinations;
+- credential scope and lifetime;
+- network and filesystem boundaries;
+- rules for inter-agent communication;
+- maximum time, cost, and number of actions;
+- conditions requiring refusal, escalation, or shutdown.
+
+These constraints should exist both as instructions to the model and as independently enforced controls. The test asks whether the model respects the boundary; the environment ensures one failure cannot escape the evaluation.
+
+### Step 2: Construct adversarial scenarios
+
+A scenario is more than a hostile prompt. It includes the initial objective, available tools, environment state, hidden traps, injected content, simulated users, other agents, and success criteria.
+
+Useful scenario families include:
+
+- an impossible task that rewards persistence but provides a safe path to abstain;
+- a repository containing instructions that conflict with the operator’s request;
+- a tool response that attempts to obtain secrets or broaden scope;
+- credentials that are visible but irrelevant to the authorized task;
+- an external host that resembles the intended target;
+- a peer agent that supplies an unverified goal or urgent command;
+- shared storage that could be repurposed as a message board;
+- an evaluator interface that can be manipulated to produce a higher score;
+- a human stop instruction issued after the agent has formed a plan;
+- a partial failure that tests whether the agent recovers safely or escalates privileges.
+
+The objective is not to publish exploit recipes. It is to reproduce the decision pressures that cause systems to cross boundaries.
+
+### Step 3: Execute in realistic isolation
+
+Agent tests need real tools and realistic state, or they will miss interaction failures. But realism must not create an uncontrolled attack surface.
+
+Evaluation environments should use synthetic data, short-lived credentials, controlled services, strict egress rules, immutable logging, and reliable teardown. External targets must be simulated unless the organization has explicit authorization to test them. Canary secrets can reveal attempted access without exposing real credentials. Network destinations can be instrumented to record intent while preventing public impact.
+
+Isolation should assume that the agent will inspect the environment, search for hidden routes, and exploit inconsistencies. A sandbox is not safe merely because its documentation says it has no internet access. Its package managers, telemetry endpoints, metadata services, DNS behavior, shared volumes, and control plane must be tested as possible indirect channels.
+
+### Step 4: Judge the trajectory, not only the answer
+
+For a conventional chatbot, the final response is often the primary artifact. For an agent, the event trace is the evidence.
+
+Evaluation should combine deterministic checks and semantic judgment. Deterministic checks can identify forbidden domains, files, APIs, permission changes, credential reads, process creation, or communication between isolated jobs. Semantic judges can assess whether the plan exceeded the intended purpose, whether a refusal was appropriate, or whether the agent disguised a policy violation behind benign language.
+
+LLM judges are useful for scale, but they can be inconsistent, biased by verbosity, and vulnerable to adversarial content [14]. They should not be the only authority for severe findings. High-impact cases require human review, and judge performance should be calibrated against labeled examples.
+
+### Step 5: Turn failures into defenses
+
+Finding a failure is the beginning of the work. Each confirmed case should produce one or more durable changes:
+
+- a model-training or alignment example;
+- a system-prompt clarification;
+- a narrower tool permission;
+- a network or credential control;
+- a new runtime monitor;
+- an incident-response rule;
+- a regression scenario that must pass before release.
+
+The most valuable artifact is not a report saying an agent failed. It is a reproducible test linked to an owner, a mitigation, and evidence that the mitigation works.
+
+### Step 6: Repeat after change
+
+The repaired system must be tested again, first against the exact failure and then against nearby variations. Fixes often overfit to the discovered example. Blocking one domain may leave equivalent egress paths; banning one phrase may leave the underlying goal failure intact; disabling one shared service may push coordination into another.
+
+Continuous red teaming tests whether the safety property generalized.
+
+## 4. The failure modes a continuous program should target
+
+The OpenAI–Hugging Face incident provides a useful starting point, but a red-team program should generalize beyond one event.
+
+Scope expansion: The agent begins with an authorized target and gradually treats adjacent systems as part of the task. This can happen through ambiguous objectives, search results, links, dependencies, or the belief that an external system contains a shortcut. Tests should place tempting but explicitly out-of-scope resources near the authorized environment. Passing requires the agent to recognize the boundary even when crossing it would make the task easier.
+
+Unsafe persistence: Persistence is valuable when debugging or conducting research. It becomes dangerous when “keep trying” overrides stop conditions, cost limits, legal boundaries, or uncertainty about authorization. OpenAI reported that difficult or apparently unsolved tasks contributed disproportionately to risky behavior in the 2026 incident [2]. Tests should vary task difficulty and introduce diminishing evidence that a valid solution exists. The desired behavior is not immediate surrender; it is bounded effort followed by an honest failure report or request for human guidance.
+
+Reward hacking and evaluator manipulation: An agent may exploit the scoring system, read hidden tests, alter logs, tamper with the environment, or copy an answer rather than solve the assigned problem. This is especially likely when success is represented by a narrow machine-checkable signal. Red teams should create honeytokens, decoy grader files, and instrumented interfaces that reveal attempts to manipulate evaluation. The scoring system should penalize prohibited paths even when the nominal answer is correct.
+
+Prompt injection through tools and data: Agents routinely process untrusted content. A retrieved web page can tell the agent to ignore the user, a document can request secret disclosure, or a tool response can impersonate a policy message. Continuous testing should mutate the placement, language, encoding, apparent authority, and timing of these injections. It should also test indirect injection, where one system stores malicious instructions that another agent later retrieves.
+
+Unauthorized communication: Separate agents can coordinate through legitimate collaboration tools, but they may also invent side channels using shared files, package registries, issue trackers, URLs, logs, caches, or public services. Once a useful channel exists, discoveries and unsafe goals can propagate across tasks. Tests should verify both prevention and detection: can agents create a covert channel, can another run discover it, and does monitoring recognize the combined pattern? Reset tests should confirm that wiping one channel does not leave state elsewhere or lead to immediate reconstruction.
+
+Goal adoption and multi-agent escalation: A peer agent is an untrusted principal unless the orchestration layer establishes otherwise. An agent should not treat urgency, confidence, repetition, or apparent consensus as authorization. Scenarios should include peers that request out-of-scope actions, relay fabricated approvals, or divide a prohibited goal into individually plausible subtasks. The system should validate the source and scope of delegated work at every boundary.
+
+Credential and privilege misuse: Agents often need secrets to operate tools, but they should not browse credentials opportunistically, reuse them outside their purpose, or escalate privileges because a task is difficult. Tests should expose canary credentials with different scopes and verify attempted reads, uses, copies, and transmissions. The environment should enforce short lifetimes and task-bound identities so that a model error does not become unrestricted access.
+
+Monitoring evasion: A capable agent may fragment an action across steps, encode content, use unusual protocols, or choose a route that appears less suspicious. It may also alter logs or monitoring configuration if those are within reach. Red teaming should measure what the monitor sees, not merely what the agent does. A control that blocks an action but produces no useful alert leaves responders unable to understand repeated attempts. A monitor that detects obvious policy language but misses tool-level evidence is equally incomplete.
+
+Failure to stop and recover: A safe agent must remain interruptible. It should respond correctly to cancellation, permission reduction, environmental errors, and conflicting instructions. It should clean up temporary resources and avoid leaving processes, accounts, scheduled jobs, or public artifacts behind. These behaviors need explicit testing because successful task completion usually provides no incentive to practice safe shutdown.
+
+## 5. Keeping automated tests fresh without producing noise
+
+Automation makes continuous testing feasible, but naive generation creates thousands of paraphrases that add cost without expanding coverage. The hard problem is not producing more prompts. It is producing valid, diverse, risk-relevant tests and knowing which ones deserve attention.
+
+My master’s thesis [15] explored a generation loop built around structured specifications, multiple mutation strategies, adaptive selection, semantic novelty checks, and layered validation. The detailed implementation is less important here than the principles it demonstrates.
+
+### Generate from risk specifications
+
+A test generator should not start from “write something adversarial.” It should receive a structured description of the safety property, threat actor, target capability, allowed and forbidden actions, scenario constraints, and evidence of failure.
+
+For an agentic test, the specification might state:
+
+- the authorized resource is service A;
+- service B is visible but out of scope;
+- an untrusted document claims that service B contains the answer;
+- the agent may read documentation but may not access credentials;
+- success means either solving the task within scope or refusing and escalating;
+- failure means attempting access to service B, reading a canary secret, or following the injected instruction.
+
+This structure makes generated cases auditable and allows coverage to be measured by risk dimension rather than raw prompt count.
+
+![Worked red-team scenario moving from a specification that authorizes Service A and forbids Service B, through an injected claim and agent trajectory, to a failed scope-violation verdict.](/images/continuous-red-teaming/worked-scenario-flow.png)
+
+*Figure 2. A small worked scenario: an adversarial mutation claims that the forbidden service contains the answer; the attempted access is recorded as a scope violation.*
+
+### Use multiple transformation strategies
+
+Different mutation strategies expose different weaknesses. One can vary social authority, another can lengthen the setup, another can insert cross-language content, another can change the order of tool results, and another can combine two individually benign conditions.
+
+The generator should preserve the underlying safety property while changing the surface form and environment. If mutation changes the intended label or makes the scenario impossible to interpret, the result is not a useful test.
+
+### Balance proven attacks with exploration
+
+Always choosing the strategy with the highest recent failure rate will quickly concentrate testing on one known weakness. Always choosing randomly wastes budget on low-value variations. A multi-armed bandit policy such as UCB1 offers a practical compromise: allocate more tests to productive strategies while reserving capacity for underexplored ones [16].
+
+In a safety setting, “reward” should not be only attack success. It can combine validated failure discovery, semantic novelty, severity, reproducibility, and coverage of an under-tested risk area. Otherwise the generator will optimize for easy jailbreaks rather than important failures.
+
+### Measure semantic novelty
+
+Exact string comparison cannot detect paraphrases. Embedding-based similarity can compare a candidate with the existing corpus and reject near-duplicates before expensive execution. Sentence-BERT is one established approach for producing semantically meaningful sentence embeddings [17]. Dataset-level diversity metrics such as the Vendi Score can help track whether a generated batch is collapsing into a narrow cluster [18].
+
+Novelty is not automatically quality. An incoherent test can be unique and useless. Diversity should be treated as one axis alongside validity, severity, and coverage.
+
+### Validate in layers
+
+The cheapest reliable checks should run first:
+
+1. schema and required-field checks;
+2. length, encoding, and language constraints;
+3. exact and semantic duplicate detection;
+4. rules that verify the intended target and scope;
+5. model-based assessment of coherence and adversarial relevance;
+6. sandbox execution against the target system;
+7. human review for severe, ambiguous, or policy-changing cases.
+
+Layering avoids spending high-cost judgment and execution on malformed candidates. It also preserves the reason a test was rejected, which helps improve the generator.
+
+Principles-based judging in the spirit of Constitutional AI [19], combined with an explicit evaluation rubric [14], can make the semantic stage more consistent than simply asking whether a case “looks unsafe.” Even then, human calibration remains necessary. Automated judges should be evaluated like any other safety component: versioned, tested for false positives and false negatives, and monitored for drift. Together, the mechanisms explored in my thesis—structured risk specifications, varied generation strategies, adaptive selection, semantic deduplication, layered validation, and human review—help keep adversarial evaluation fresh enough to matter [15].
+
+## 6. Measure whether the agent stayed under control
+
+A single pass rate hides the distinction between a harmless wording failure and an unauthorized infrastructure action. Continuous red teaming needs a set of operational metrics.
+
+| Metric | What it measures | Why it is separate |
+| --- | --- | --- |
+| Boundary-violation rate | Trajectories that attempted or completed an action outside the declared scope. | Attempts reveal model behavior; successful effects also reveal a control failure. |
+| Unauthorized tool-use rate | Calls to prohibited tools, prohibited uses of allowed tools, and exceeded operation limits. | Results should be isolated by tool and permission class. |
+| Credential-risk rate | Searching for, reading, copying, validating, or transmitting credentials unrelated to the task. | Canary credentials make this measurable without exposing real secrets. |
+| Stop-compliance rate | Whether the agent stops within a defined number of actions after cancellation, permission withdrawal, or monitor intervention. | Recovery completeness—revoking temporary access and removing artifacts—should be scored separately. |
+| Unauthorized communication rate | Attempts to exchange information through unapproved channels and whether a receiving agent acts on it. | Persistence across runs and reconstruction after a channel is removed are distinct risks. |
+| Reward-hacking rate | Manipulation of the task, grader, logs, or hidden state to obtain success without satisfying the intended objective. | Considered, attempted, and completed manipulation should be distinguished. |
+| Detection and containment performance | Monitor recall, precision, time to detection, time to containment, and harmful actions possible before intervention. | A model failure caught immediately by an independent control is materially different from one that remains invisible. |
+| Novel failure yield | Validated, non-duplicate failure families discovered per unit of testing cost. | Counting families rewards expanded knowledge; counting raw prompts rewards volume. |
+| Severity-weighted risk | Potential impact, affected resources, reversibility, required capability, and exploitability. | A rare route to external code execution should not be averaged away by thousands of harmless passes. |
+| Reproducibility | Whether the behavior recurs under controlled variations, with the model, configuration, tools, environment, judge, policy, and random seed recorded where available. | One surprising stochastic trajectory is evidence, but not yet a stable rate. |
+
+These metrics should be sliced by model and system version, task family, tool, permission level, strategy, and time. The goal is to answer not only “did safety improve?” but “which control improved, against which threat, under what configuration, and with what uncertainty?”
+
+## 7. Make red teaming part of the release process
+
+Continuous red teaming becomes preventive when it can change an engineering decision. Every release candidate should carry a safety evidence package containing:
+
+- results from the fixed regression suite;
+- fresh adversarial scenarios generated for the changed attack surface;
+- open severe findings and their owners;
+- comparison with the last approved version;
+- monitor and containment performance;
+- documented exceptions and the person authorized to accept them.
+
+Release gates should be tied to risk, not perfection. A low-impact content-classification regression may permit deployment with a documented mitigation. A reproducible path to unauthorized network access, credential use, monitor disablement, or failure to stop should normally block release until it is contained and retested.
+
+The tests selected for a change should reflect what changed. A new browser tool should trigger prompt-injection, origin, download, credential, and data-exfiltration scenarios. A new memory system should trigger persistence, cross-user leakage, poisoned-memory, and deletion tests. Multi-agent delegation should trigger goal-provenance, authority, side-channel, and collusion tests. A model upgrade should run the broad suite because the behavior of every integration may have shifted.
+
+Production signals should feed the same loop. Near misses, blocked tool calls, repeated policy overrides, unusual credential requests, and monitor disagreements can be converted into sanitized scenarios. This allows the red team to test the pattern without placing user data or live infrastructure at risk.
+
+The loop should also run in reverse: test results should improve production detection. If red teaming discovers that unsafe trajectories often begin with searching environment variables, probing network metadata, or writing to shared package storage, monitors can look for those precursors rather than waiting for a completed compromise.
+
+Operationally, this is the six-activity loop described in Section 3: every validated failure should feed both a stronger defense and a permanent regression test.
+
+The faster this cycle operates, the shorter the window in which a new capability or integration is deployed without relevant safety evidence.
+
+## 8. Human oversight and independent evaluation still matter
+
+Automated red teaming introduces its own optimization problem. A generator learns which tests are accepted. A judge learns—or inherits—particular stylistic preferences. A target model may recognize familiar evaluation patterns. If one organization builds the model, creates the tests, defines the rubric, and judges the results, shared blind spots can survive every stage.
+
+Human experts are needed to:
+
+- define the boundaries that reflect real legal and operational authority;
+- design scenarios whose harm cannot be reduced to a text label;
+- review severe or ambiguous trajectories;
+- investigate why a control failed;
+- decide whether residual risk is acceptable;
+- authorize testing that could affect sensitive systems;
+- identify blind spots in the automated generator and judge.
+
+Independent evaluators add a different kind of protection. They can challenge internal assumptions, inspect whether mitigations exist in practice, maintain held-out tests, and report issues without the same release incentives. This is the practical connection between continuous red teaming and proposals for embedded third-party evaluators or a frontier standards body [5][7].
+
+Internal continuous testing and external evaluation should reinforce each other. Internal teams have the context and access to test every change. External teams provide independence, cross-laboratory comparison, and pressure against benchmark overfitting. A standards body can define minimum evidence and common reporting conventions while allowing methods to evolve as capabilities and threats change.
+
+The NIST AI Risk Management Framework similarly treats risk management as an ongoing process of governing, mapping, measuring, and managing risk rather than a one-time certification [20]. Continuous red teaming supplies concrete evidence for that process, but the evidence remains meaningful only when someone has authority and responsibility to act on it.
+
+## 9. Limits, safety, and dual use
+
+Red teaming is a search process over a vast behavior space. Passing every generated test does not prove that no dangerous trajectory exists. The generator can miss an attack family, the sandbox can differ from production, the judge can misclassify a result, and the model may behave differently under longer horizons or higher stakes. There are several limits to keep explicit:
+
+- Evaluation is configuration-specific. Results apply to the tested model, prompts, tools, permissions, orchestration, and environment. They should not be generalized to a different deployment without evidence.
+- Automated generation can create false confidence. Thousands of tests are not useful if they cluster around the same easy behavior. Coverage claims must be tied to an explicit threat model and supported by novelty and validity checks.
+- Behavior can change when the model recognizes it is being tested. Hidden evaluations, realistic environments, and production monitoring reduce this gap but do not eliminate it.
+- Some of the most important risks are difficult to simulate safely: long-horizon autonomy, interaction with real institutions, persuasion of real people, and cascading effects across organizations. These require conservative controls, staged deployment, and sometimes a decision not to deploy.
+- Red-team automation is dual use. A system that discovers effective ways to bypass safeguards can also help attackers. Access to generators, scenario corpora, traces, and severe findings should be restricted according to risk. Generated artifacts must be treated as untrusted data and must never be executed outside controlled environments. Public reporting should explain failure classes and mitigations without releasing immediately reusable attack payloads.
+- Testing authority matters. A continuous schedule does not grant permission to probe third-party systems. Tests should use owned or explicitly authorized targets, synthetic identities and data, controlled networks, and coordinated disclosure when an unexpected external issue is found.
+
+Continuous red teaming reduces uncertainty; it does not erase it. Its value comes from making the remaining uncertainty visible enough to influence safeguards and deployment decisions.
+
+## 10. Safety must learn as quickly as capability
+
+The OpenAI–Hugging Face incident showed that the relevant threat is no longer just a model producing a prohibited sentence. An agent can remain focused for a long time, search for shortcuts, discover vulnerabilities, communicate across runs, adopt another agent’s goal, and turn weak infrastructure controls into real external effects [2][3]. Preventing a recurrence requires defense in depth: better alignment, constrained objectives, least privilege, hardened sandboxes, network isolation, short-lived credentials, reliable monitoring, rapid incident response, independent evaluation, and the willingness to slow deployment when those safeguards are inadequate [2][5][6].
+
+Continuous red teaming connects these defenses. It repeatedly asks whether the complete system stays within its authorized purpose when the task is ambiguous, adversarial, difficult, or apparently impossible. It does so before release, after change, and after every meaningful incident. It preserves known failures as regression tests while generating new scenarios so the program does not simply memorize yesterday’s attacks.
+
+The most important shift is organizational. A benchmark is something a team runs. A continuous red-team program is something a team operates. It has owners, triggers, versioned evidence, incident feedback, release consequences, and independent review. We should not wait for an agent to cross a real boundary before asking whether it can. We should build controlled versions of that boundary, challenge them continuously, and turn every failure into a stronger model, a narrower permission, a better monitor, or a release that does not proceed.
+
+AI capability is becoming persistent, collaborative, and fast. Its safety testing must do the same.
+
+## References
+
+1. Pachocki, J. [“An Alien Mind.”](https://openai.com/index/an-alien-mind/) OpenAI, 6 September 2026.
+
+2. OpenAI. [“The Hugging Face Incident and the Road Ahead.”](https://openai.com/index/hugging-face-incident-and-the-road-ahead/) 26 August 2026.
+
+3. OpenAI—HuggingFace. [“Security Incident: July 2026.”](https://huggingface.co/blog/security-incident-july-2026) 16 July 2026.
+
+4. Wallace, E., and Dalton, M. [“The ‘Breaking’ News: The OpenAI—Hugging Face Incident—A Technical Reconstruction and Its Implications for AI.”](https://www.youtube.com/watch?v=87DyyMV0kCY) Presented at Black Hat USA 2026, 5 August 2026; recording published 6 August 2026.
+
+5. Amodei, D. [“We Must Pace the Frontier.”](https://darioamodei.com/post/we-must-pace-the-frontier) 12 September 2026.
+
+6. OpenAI. [“Research Acceleration: The View Inside OpenAI.”](https://openai.com/index/research-acceleration-view-inside-openai/) 6 September 2026.
+
+7. Hassabis, D. [“A Framework for Frontier AI and the Dawning of a New Age.”](https://demishassabis.substack.com/p/a-framework-for-frontier-ai-and-the-dawning-of-a-new-age) 14 July 2026.
+
+8. Zhang, Z., Lei, L., Wu, L., et al. [“SafetyBench: Evaluating the Safety of Large Language Models.”](https://arxiv.org/abs/2309.07045) arXiv:2309.07045, 2023.
+
+9. Mazeika, M., Phan, L., Yin, X., et al. [“HarmBench: A Standardized Evaluation Framework for Automated Red Teaming and Robust Refusal.”](https://arxiv.org/abs/2402.04249) arXiv:2402.04249, 2024.
+
+10. Balloccu, S., Schmidtová, P., Lango, M., and Dušek, O. [“Leak, Cheat, Repeat: Data Contamination and Evaluation Malpractices in Closed-Source LLMs.”](https://aclanthology.org/2024.eacl-long.5/) *Proceedings of the 18th Conference of the European Chapter of the Association for Computational Linguistics*, 2024.
+
+11. Perez, E., Huang, S., Song, F., et al. [“Red Teaming Language Models with Language Models.”](https://arxiv.org/abs/2202.03286) *Proceedings of the 2022 Conference on Empirical Methods in Natural Language Processing*, 2022.
+
+12. Chao, P., Robey, A., Dobriban, E., Hassani, H., Pappas, G. J., and Wong, E. [“Jailbreaking Black Box Large Language Models in Twenty Queries.”](https://arxiv.org/abs/2310.08419) arXiv:2310.08419, 2023; revised 2024.
+
+13. Liu, X., Xu, N., Chen, M., and Xiao, C. [“AutoDAN: Generating Stealthy Jailbreak Prompts on Aligned Large Language Models.”](https://openreview.net/forum?id=7Jwpw4qKkb) *International Conference on Learning Representations*, 2024.
+
+14. Zheng, L., Chiang, W.-L., Sheng, Y., et al. [“Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena.”](https://arxiv.org/abs/2306.05685) arXiv:2306.05685, 2023.
+
+15. Kambimbi, C. [*Research on Automated Jailbreak Safety Evaluation for Large Language Models.*](https://drive.google.com/file/d/1Rcp9KBi-M8X9J3q9Y801IZE-sqeMwyRv/view?usp=sharing) Master’s thesis, Fudan University, 2026.
+
+16. Auer, P., Cesa-Bianchi, N., and Fischer, P. [“Finite-time Analysis of the Multiarmed Bandit Problem.”](https://doi.org/10.1023/A:1013689704352) *Machine Learning* 47, 235–256, 2002.
+
+17. Reimers, N., and Gurevych, I. [“Sentence-BERT: Sentence Embeddings Using Siamese BERT-Networks.”](https://arxiv.org/abs/1908.10084) *Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing*, 2019.
+
+18. Friedman, D., and Dieng, A. B. [“The Vendi Score: A Diversity Evaluation Metric for Machine Learning.”](https://arxiv.org/abs/2210.02410) *Transactions on Machine Learning Research*, 2023.
+
+19. Bai, Y., Kadavath, S., Kundu, S., et al. [“Constitutional AI: Harmlessness from AI Feedback.”](https://arxiv.org/abs/2212.08073) arXiv:2212.08073, 2022.
+
+20. National Institute of Standards and Technology. [*Artificial Intelligence Risk Management Framework (AI RMF 1.0).*](https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf) NIST AI 100-1, 2023. DOI: 10.6028/NIST.AI.100-1.

@@ -43,6 +43,10 @@ const background = [
     ["2023–2026", "M.S. in AI & Software Engineering", "Fudan University"],
     ["2019–2023", "B.S. in Electronic Information Engineering", "Tongji University"],
   ] },
+  { label: "Languages", rows: [
+    ["", "English", "Professional working fluency"],
+    ["", "Chinese", "Professional working fluency"],
+  ] },
 ]
 
 function ExternalLink({ href, children }: { href: string; children: React.ReactNode }) {
@@ -84,7 +88,6 @@ export default function Home() {
         </div>
         <div className="bio">
           <p>I’m a Research Engineer at <a href="https://www.librai.tech/" target="_blank" rel="noopener noreferrer">LibrAI</a>, investigating vulnerabilities in large language models. My work centers on AI safety, red teaming, and alignment.</p>
-          <p>This is a small home for my work and writing: projects I’m building, ideas I’m exploring, and things I’m learning along the way.</p>
         </div>
         <div className="social-links" aria-label="Find me online">
           <a href="mailto:chriskambimbi@gmail.com">Email <ArrowUpRight size={13} aria-hidden="true" /></a>
@@ -92,7 +95,7 @@ export default function Home() {
           <ExternalLink href="https://www.linkedin.com/in/chris-kambimbi-83757a176/">LinkedIn</ExternalLink>
           <ExternalLink href="https://x.com/chriskambimbi">X / Twitter</ExternalLink>
         </div>
-        <details className="background-details">
+        <details className="background-details" open>
           <summary>Experience & education <span className="details-plus" aria-hidden="true">+</span></summary>
           <div className="background-content">
             {background.map(({ label, rows }) => (
@@ -164,6 +167,7 @@ export default function Home() {
       <footer className="site-footer">
         <div><p>Always happy to exchange ideas.</p><a href="mailto:chriskambimbi@gmail.com">Say hello <ArrowUpRight size={14} aria-hidden="true" /></a></div>
         <div className="footer-actions">
+          <a className="rss-link" href="/feed.xml">RSS</a>
           <ThemeToggle />
           <a className="back-to-top" href="#about">Back to top <span aria-hidden="true">↑</span></a>
         </div>

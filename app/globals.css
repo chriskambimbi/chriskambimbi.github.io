@@ -6,7 +6,7 @@
   --paper: #faf9f6;
   --ink: #272923;
   --secondary: #62645c;
-  --subtle: #77796f;
+  --subtle: #696b61;
   --rule: #e2e3da;
   --accent: #65764c;
   --wash: #f0f0e9;
@@ -99,6 +99,7 @@ summary::-webkit-details-marker { display: none; }
 .site-footer p { color: var(--subtle); margin-bottom: 5px; }
 .site-footer .back-to-top { color: var(--subtle); font-size: 11px; gap: 9px; }
 .footer-actions { display: flex; align-items: center; gap: 16px; }
+.rss-link { color: var(--subtle); font-size: 11px; letter-spacing: .5px; }
 .theme-toggle { border: 0; background: transparent; color: var(--subtle); display: grid; place-items: center; width: 30px; height: 30px; }
 .theme-toggle:hover { color: var(--accent); background: var(--wash); }
 

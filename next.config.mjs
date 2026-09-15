@@ -8,6 +8,7 @@ import rehypeKatex from 'rehype-katex'
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
+  devIndicators: false,
   typescript: {
     ignoreBuildErrors: true,
   },

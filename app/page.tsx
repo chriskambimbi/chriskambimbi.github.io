@@ -52,6 +52,12 @@ function ExternalLink({ href, children }: { href: string; children: React.ReactN
 const publications = [
   {
     year: "2026",
+    title: "Do Influence-Derived Data Perturbations Enable Machine Unlearning? A Controlled Study of Three Plausible Roles",
+    venue: "Preprint · alphaXiv",
+    url: "https://www.alphaxiv.org/abs/2609.12313",
+  },
+  {
+    year: "2026",
     title: "Research on Automated Jailbreak Safety Evaluation for Large Language Models",
     venue: "Master's thesis · Fudan University",
     url: "https://drive.google.com/file/d/1Rcp9KBi-M8X9J3q9Y801IZE-sqeMwyRv/view?usp=sharing",

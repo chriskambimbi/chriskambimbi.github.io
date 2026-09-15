@@ -85,9 +85,22 @@ summary::-webkit-details-marker { display: none; }
 .post-category { display: block; color: var(--subtle); font-size: 10px; margin-top: 5px; }
 .post-toggle { margin-top: 4px; color: var(--subtle); transition: transform 150ms ease; }
 .post-link:hover .post-title { color: var(--accent); }
+.post-description { display: block; max-width: 570px; margin-top: 6px; color: var(--secondary); font-size: 12.5px; line-height: 1.65; }
+.posts-group-label { margin: 14px 0 2px; }
+.posts-group:first-of-type .posts-group-label { margin-top: 0; }
+.publication { display: grid; grid-template-columns: 110px 1fr; gap: 18px; font-size: 13px; }
+.publication + .publication { margin-top: 18px; }
+.publication-year { color: var(--subtle); }
+.publication h3 { font-weight: 400; font-size: 14px; line-height: 1.65; }
+.publication h3 a:hover { color: var(--accent); }
+.publication h3 svg { color: var(--subtle); }
+.publication-venue { color: var(--subtle); font-size: 11px; margin-top: 4px; }
 .site-footer { display: flex; justify-content: space-between; gap: 20px; align-items: flex-end; border-top: 1px solid var(--rule); padding: 32px 0 47px; font-size: 12px; }
 .site-footer p { color: var(--subtle); margin-bottom: 5px; }
 .site-footer .back-to-top { color: var(--subtle); font-size: 11px; gap: 9px; }
+.footer-actions { display: flex; align-items: center; gap: 16px; }
+.theme-toggle { border: 0; background: transparent; color: var(--subtle); display: grid; place-items: center; width: 30px; height: 30px; }
+.theme-toggle:hover { color: var(--accent); background: var(--wash); }
 
 /* Shared article typography, figures, math, and references. */
 .article-content { color: var(--secondary); font: 17px/1.85 Georgia, 'Times New Roman', serif; overflow-wrap: anywhere; }
@@ -142,6 +155,8 @@ summary::-webkit-details-marker { display: none; }
   .post-title { font-size: 14px; }
   .article-content { font-size: 16px; }
   .resume-row { grid-template-columns: 87px 1fr; gap: 10px; }
+  .publication { grid-template-columns: 87px 1fr; gap: 10px; }
+  .post-description { font-size: 12px; }
   .site-footer { font-size: 11px; }
 }
 @media (max-width: 380px) {

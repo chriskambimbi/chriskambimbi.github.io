@@ -13,7 +13,13 @@ export interface BlogPost {
   coverImage?: string
   description?: string
   tags?: string[]
+  category: string
+  readingMinutes: number
   content: string
+}
+
+function readingMinutes(content: string): number {
+  return Math.max(1, Math.round(content.split(/\s+/).length / 220))
 }
 
 // Derive a plain-text summary from MDX content for meta descriptions.
@@ -53,6 +59,8 @@ export function getAllBlogPosts(): BlogPost[] {
         coverImage: data.coverImage,
         description: data.description,
         tags: data.tags || [],
+        category: data.category || 'research',
+        readingMinutes: readingMinutes(content),
         content,
       }
     })
@@ -82,6 +90,8 @@ export function getBlogPost(slug: string): BlogPost | null {
       coverImage: data.coverImage,
       description: data.description,
       tags: data.tags || [],
+      category: data.category || 'research',
+      readingMinutes: readingMinutes(content),
       content,
     }
   } catch (error) {

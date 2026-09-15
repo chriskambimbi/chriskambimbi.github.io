@@ -1,15 +1,8 @@
 import { ArrowUpRight } from "lucide-react"
-import { getAllBlogPosts } from "@/lib/mdx"
+import { getAllBlogPosts, getExcerpt } from "@/lib/mdx"
+import ThemeToggle from "@/components/ThemeToggle"
 
 const projects = [
-  {
-    title: "Tinker in Practice",
-    type: "LLM TRAINING · INTERACTIVE TUTORIAL",
-    description: "An interactive guide to using Tinker, from your first training loop to fine-tuning, reinforcement learning, and deployment. Learn through visual explanations and hands-on modules.",
-    links: [
-      { label: "Explore tutorial", url: "https://tinker-ochre.vercel.app/" },
-    ],
-  },
   {
     title: "MedLLM Attack Taxonomy",
     type: "AI SAFETY · RESEARCH TOOL",
@@ -17,6 +10,14 @@ const projects = [
     links: [
       { label: "Explore project", url: "https://chriskambimbi.github.io/MedLLM-Attack-Taxonomy/" },
       { label: "GitHub", url: "https://github.com/chriskambimbi/MedLLM-Attack-Taxonomy" },
+    ],
+  },
+  {
+    title: "Tinker in Practice",
+    type: "LLM TRAINING · INTERACTIVE TUTORIAL",
+    description: "An interactive guide to using Tinker, from your first training loop to fine-tuning, reinforcement learning, and deployment. Learn through visual explanations and hands-on modules.",
+    links: [
+      { label: "Explore tutorial", url: "https://tinker-ochre.vercel.app/" },
     ],
   },
   {
@@ -48,8 +49,21 @@ function ExternalLink({ href, children }: { href: string; children: React.ReactN
   return <a href={href} target="_blank" rel="noopener noreferrer">{children}<ArrowUpRight size={13} aria-hidden="true" /></a>
 }
 
+const publications = [
+  {
+    year: "2026",
+    title: "Research on Automated Jailbreak Safety Evaluation for Large Language Models",
+    venue: "Master's thesis · Fudan University",
+    url: "https://drive.google.com/file/d/1Rcp9KBi-M8X9J3q9Y801IZE-sqeMwyRv/view?usp=sharing",
+  },
+]
+
 export default function Home() {
   const posts = getAllBlogPosts()
+  const postGroups = [
+    { label: "Research", posts: posts.filter(post => post.category !== "notes") },
+    { label: "Notes", posts: posts.filter(post => post.category === "notes") },
+  ].filter(group => group.posts.length > 0)
 
   return (
     <>
@@ -89,6 +103,26 @@ export default function Home() {
         </details>
       </section>
 
+      <section id="blog" className="section blog-section" aria-labelledby="blog-title">
+        <div className="section-heading"><h2 id="blog-title">Blog</h2><span className="section-note">Notes, research & reflections</span></div>
+        {postGroups.map(group => (
+          <div className="posts posts-group" key={group.label}>
+            <p className="eyebrow posts-group-label">{group.label}</p>
+            {group.posts.map(post => (
+              <a className="post post-link" key={post.slug} href={`/${post.slug}/`}>
+                <span className="post-date">{post.date}, {post.year}</span>
+                <span className="post-heading">
+                  <span className="post-title">{post.title}</span>
+                  <span className="post-description">{post.description || getExcerpt(post.content, 150)}</span>
+                  <span className="post-category">{(post.tags || []).join(" / ")} · {post.readingMinutes} min read</span>
+                </span>
+                <ArrowUpRight className="post-toggle" size={18} aria-hidden="true" />
+              </a>
+            ))}
+          </div>
+        ))}
+      </section>
+
       <section id="projects" className="section" aria-labelledby="projects-title">
         <div className="section-heading"><h2 id="projects-title">Projects</h2><span className="section-note">A few things I’ve built</span></div>
         <div className="project-list">
@@ -106,22 +140,27 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="blog" className="section blog-section" aria-labelledby="blog-title">
-        <div className="section-heading"><h2 id="blog-title">Blog</h2><span className="section-note">Notes, research & reflections</span></div>
-        <div className="posts">
-          {posts.map(post => (
-            <a className="post post-link" key={post.slug} href={`/${post.slug}/`}>
-              <span className="post-date">{post.date}, {post.year}</span>
-              <span className="post-heading"><span className="post-title">{post.title}</span><span className="post-category">{(post.tags || []).join(" / ")}</span></span>
-              <ArrowUpRight className="post-toggle" size={18} aria-hidden="true" />
-            </a>
+      <section id="publications" className="section" aria-labelledby="publications-title">
+        <div className="section-heading"><h2 id="publications-title">Publications</h2><span className="section-note">Research output</span></div>
+        <div className="publication-list">
+          {publications.map(pub => (
+            <article className="publication" key={pub.title}>
+              <span className="publication-year">{pub.year}</span>
+              <div>
+                <h3><a href={pub.url} target="_blank" rel="noopener noreferrer">{pub.title} <ArrowUpRight size={13} aria-hidden="true" /></a></h3>
+                <p className="publication-venue">{pub.venue}</p>
+              </div>
+            </article>
           ))}
         </div>
       </section>
 
       <footer className="site-footer">
         <div><p>Always happy to exchange ideas.</p><a href="mailto:chriskambimbi@gmail.com">Say hello <ArrowUpRight size={14} aria-hidden="true" /></a></div>
-        <a className="back-to-top" href="#about">Back to top <span aria-hidden="true">↑</span></a>
+        <div className="footer-actions">
+          <ThemeToggle />
+          <a className="back-to-top" href="#about">Back to top <span aria-hidden="true">↑</span></a>
+        </div>
       </footer>
     </>
   )
